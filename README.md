@@ -1,6 +1,6 @@
-# Bare-Metal SPI Flash Driver
+# STM32 Bare-Metal Flash Driver
 
-A bare-metal SPI Flash memory driver for the STM32F103 written in C using register-level programming.
+A bare-metal Flash memory driver for the STM32F103 written in C using register-level programming.
 
 This project interfaces an STM32F103 microcontroller with a Winbond W25Qxx SPI NOR Flash memory chip using SPI1. It implements core Flash operations such as reading the JEDEC ID, reading the status register, write enable, page program, sector erase, block erase, chip erase, and multi-page writes.
 
