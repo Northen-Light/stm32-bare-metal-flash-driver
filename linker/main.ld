@@ -7,24 +7,33 @@ _estack = ORIGIN(SRAM) + LENGTH(SRAM);
 
 SECTIONS {
   .text : {
-    *(.isr_vector)
-    *(.text)
+    . = ALIGN(4);
+    KEEP(*(.isr_vector))
+    *(.text*)
+    . = ALIGN(4);
   } > FLASH
 
   .rodata : {
-    *(.rodata)
-    _end_rodata_ = .;
+    . = ALIGN(4);
+    *(.rodata*)
+    . = ALIGN(4);
   } > FLASH
 
   .data : {
-    _start_data_ = .;
-    *(.data)
-    _end_data_ = .;
+    . = ALIGN(4);
+    _sdata = .;
+    *(.data*)
+    . = ALIGN(4);
+    _edata = .;
   } > SRAM AT > FLASH
+  
+  _sidata = LOADADDR(.data);
 
   .bss : {
-    _start_bss_ = .;
-    *(.bss)
-    _end_bss_ = .;
-  } > SRAM
+    . = ALIGN(4);
+    _sbss = .;
+    *(.bss*)
+    . = ALIGN(4);
+    _ebss = .;
+  } > SRAM AT > SRAM
 }

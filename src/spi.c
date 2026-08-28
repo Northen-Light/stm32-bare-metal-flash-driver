@@ -1,43 +1,28 @@
-#include "spi.h"
-#include "stdint.h"
 #include "stm32f103xx.h"
-
-static void spi1_wait_txe(void);
-static void spi1_wait_rxne(void);
+#include "spi.h"
 
 void spi1_init(void) {
-  RCC_APB2ENR |= (1U << 2U);
-  RCC_APB2ENR |= (1U << 12U);
+  RCC_APB2ENR |= (1U << 12);
+  RCC_APB2ENR |= (1U << 2);
 
-  GPIOA_CRL &= ~(0xFU << 20U);
-  GPIOA_CRL |= (0x9U << 20U);
-  GPIOA_CRL &= ~(0xFU << 24U);
-  GPIOA_CRL |= (0x8U << 24U);
-  GPIOA_ODR |= (1U << 6U);
-  GPIOA_CRL &= ~(0xFU << 28U);
-  GPIOA_CRL |= (0x9U << 28U);
+  GPIOA_CRL &= ~(0x0FU << 20);
+  GPIOA_CRL |= (0x09U << 20);
+  GPIOA_CRL &= ~(0x0FU << 24);
+  GPIOA_CRL |= (0x04U << 24);
+  GPIOA_CRL &= ~(0x0FU << 28);
+  GPIOA_CRL |= (0x09U << 28);
 
-  SPI1_CR1 &= ~(1U << 6U);
-  SPI1_CR1 &= ~(1U << 0U);
-  SPI1_CR1 &= ~(1U << 1U);
-  SPI1_CR1 |= (1U << 2U);
-  SPI1_CR1 |= (0x2U << 3U);
-  SPI1_CR1 |= (1U << 8U);
-  SPI1_CR1 |= (1U << 9U);
-  SPI1_CR1 |= (1U << 6U);
+  SPI1_CR1 = 0;
+  SPI1_CR1 |= (1U << 2);
+  SPI1_CR1 |= (1U << 3);
+  SPI1_CR1 |= (1U << 8);
+  SPI1_CR1 |= (1U << 9);
+  SPI1_CR1 |= (1U << 6);
 }
 
-uint8_t spi1_transfer(uint8_t tx) {
-  spi1_wait_txe();
-  SPI1_DR = tx;
-  spi1_wait_rxne(); 
+uint8_t spi1_transfer(uint8_t byte) {
+  while ((SPI1_SR & (1U << 1)) == 0) {};
+  SPI1_DR = byte;
+  while ((SPI1_SR & (1U << 0)) == 0) {};
   return SPI1_DR;
-}
-
-static void spi1_wait_txe(void) {
-  while (!(SPI1_SR & (1U << 1U)));
-}
-
-static void spi1_wait_rxne(void) {
-  while (!(SPI1_SR & (1U << 0U)));
 }
