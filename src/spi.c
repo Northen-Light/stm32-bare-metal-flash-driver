@@ -2,27 +2,27 @@
 #include "spi.h"
 
 void spi1_init(void) {
-  RCC_APB2ENR |= (1U << 12);
-  RCC_APB2ENR |= (1U << 2);
+  RCC_APB2ENR |= RCC_APB2ENR_SPI1EN;
+  RCC_APB2ENR |= RCC_APB2ENR_IOPAEN;
 
-  GPIOA_CRL &= ~(0x0FU << 20);
-  GPIOA_CRL |= (0x09U << 20);
-  GPIOA_CRL &= ~(0x0FU << 24);
-  GPIOA_CRL |= (0x04U << 24);
-  GPIOA_CRL &= ~(0x0FU << 28);
-  GPIOA_CRL |= (0x09U << 28);
+  GPIOA_CRL &= ~GPIOA_CRL_PIN5_MASK;
+  GPIOA_CRL |= GPIOA_CRL_PIN5_AF_PP_10MHZ;
+  GPIOA_CRL &= ~GPIOA_CRL_PIN6_MASK;
+  GPIOA_CRL |= GPIOA_CRL_PIN6_INPUT_FLOATING;
+  GPIOA_CRL &= ~GPIOA_CRL_PIN7_MASK;
+  GPIOA_CRL |= GPIOA_CRL_PIN7_AF_PP_10MHZ;
 
-  SPI1_CR1 = 0;
-  SPI1_CR1 |= (1U << 2);
-  SPI1_CR1 |= (1U << 3);
-  SPI1_CR1 |= (1U << 8);
-  SPI1_CR1 |= (1U << 9);
-  SPI1_CR1 |= (1U << 6);
+  SPI1_CR1 = SPI1_CR1_RESET;
+  SPI1_CR1 = SPI1_CR1_MSTR |  
+             SPI1_CR1_BR_DIV_8 | 
+             SPI1_CR1_SSI |
+             SPI1_CR1_SSM;
+  SPI1_CR1 |= SPI1_CR1_SPE;
 }
 
 uint8_t spi1_transfer(uint8_t byte) {
-  while ((SPI1_SR & (1U << 1)) == 0) {};
+  while ((SPI1_SR & SPI1_SR_TXE) == 0) {};
   SPI1_DR = byte;
-  while ((SPI1_SR & (1U << 0)) == 0) {};
+  while ((SPI1_SR & SPI1_SR_RXNE) == 0) {};
   return SPI1_DR;
 }
