@@ -29,7 +29,8 @@ LDFLAGS = \
 SRCS = \
 	startup/startup.c \
 	src/main.c \
-	src/spi.c
+	src/spi.c	\
+	src/flash.c
 
 OBJS = $(SRCS:%.c=$(BUILD_DIR)/%.o)
 
