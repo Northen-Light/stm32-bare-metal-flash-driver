@@ -14,4 +14,9 @@
 #define FLASH_STATUS_REGISTER1_BUSY                         (1U << 0)
 #define FLASH_STATUS_REGISTER1_WEL                          (1U << 1)
 
+#define FLASH_PAGE_PROGRAM_TIMEOUT_MS                       5
+#define FLASH_SECTOR_ERASE_TIMEOUT_MS                       500
+#define FLASH_BLOCK_64KB_ERASE_TIMEOUT_MS                   2500
+#define FLASH_CHIP_ERASE_TIMEOUT_MS                         21000
+
 #endif

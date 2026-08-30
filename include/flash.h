@@ -12,6 +12,7 @@ typedef struct {
 typedef enum {
   FLASH_STATUS_OK,
   FLASH_STATUS_WEL_NOT_SET,
+  FLASH_STATUS_TIMEOUT
 } flash_status_t;
 
 void flash_init(void);

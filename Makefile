@@ -30,7 +30,8 @@ SRCS = \
 	startup/startup.c \
 	src/main.c \
 	src/spi.c	\
-	src/flash.c
+	src/flash.c \
+	src/systick.c
 
 OBJS = $(SRCS:%.c=$(BUILD_DIR)/%.o)
 

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "systick_internal.h"
 
 extern uint32_t _estack;
 extern uint32_t _sidata;
@@ -16,7 +17,19 @@ uintptr_t vector_table[] = {
   (uintptr_t) &_estack,
   (uintptr_t) Reset_Handler,
   (uintptr_t) 0,
-  (uintptr_t) HardFault_Handler
+  (uintptr_t) HardFault_Handler,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) 0,
+  (uintptr_t) SysTick_Handler,
 };
 
 void Reset_Handler(void) {
@@ -34,6 +47,7 @@ void Reset_Handler(void) {
     *start_bss_sram++ = 0;
   }
 
+  systick_init();
   main();
 }
 

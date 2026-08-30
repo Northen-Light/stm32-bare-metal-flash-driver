@@ -4,15 +4,16 @@
 #include "spi.h"
 #include "stm32f103xx.h"
 #include "flash_internal.h"
+#include "systick.h"
 
 #define PAGE_LENGTH                         256
 
+static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address);
+static flash_status_t flash_wait_until_ready(uint32_t timeout_ms);
 static void flash_select(void);
 static void flash_deselect(void);
 static void flash_write_enable(void);
 static bool flash_wel_is_set(void);
-static void flash_wait_while_busy(void);
-static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address);
 static void flash_send_address(uint32_t address);
 
 void flash_init(void) {
@@ -21,8 +22,6 @@ void flash_init(void) {
 }
 
 void flash_read_jedec_id(jedec_id_t *id) {
-  flash_wait_while_busy();
-
   flash_select();
   spi1_transfer(FLASH_CMD_JEDEC_ID);
   id -> manufacturer_id = spi1_transfer(FLASH_DUMMY_BYTE);
@@ -32,8 +31,6 @@ void flash_read_jedec_id(jedec_id_t *id) {
 }
 
 void flash_read(uint32_t length, uint32_t address, uint8_t *out_buffer) {
-  flash_wait_while_busy();
-
   flash_select();
   spi1_transfer(FLASH_CMD_READ_DATA);
   flash_send_address(address);
@@ -100,8 +97,6 @@ flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address
 }
 
 flash_status_t flash_sector_erase(uint32_t address) {
-  flash_wait_while_busy();
-
   flash_write_enable();
   
   if (!flash_wel_is_set()) {
@@ -112,13 +107,11 @@ flash_status_t flash_sector_erase(uint32_t address) {
   spi1_transfer(FLASH_CMD_SECTOR_ERASE);
   flash_send_address(address);
   flash_deselect();
-
-  return FLASH_STATUS_OK;
+  
+  return flash_wait_until_ready(FLASH_SECTOR_ERASE_TIMEOUT_MS);
 }
 
 flash_status_t flash_block_64KB_erase(uint32_t address) {
-  flash_wait_while_busy();
-
   flash_write_enable();
   
   if (!flash_wel_is_set()) {
@@ -130,12 +123,10 @@ flash_status_t flash_block_64KB_erase(uint32_t address) {
   flash_send_address(address);
   flash_deselect();
 
-  return FLASH_STATUS_OK;
+  return flash_wait_until_ready(FLASH_BLOCK_64KB_ERASE_TIMEOUT_MS);
 }
 
 flash_status_t flash_chip_erase(void) {
-  flash_wait_while_busy();
-
   flash_write_enable();
   
   if (!flash_wel_is_set()) {
@@ -144,6 +135,51 @@ flash_status_t flash_chip_erase(void) {
 
   flash_select();
   spi1_transfer(FLASH_CMD_CHIP_ERASE);
+  flash_deselect();
+
+  return flash_wait_until_ready(FLASH_CHIP_ERASE_TIMEOUT_MS);
+}
+
+static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address) {
+  flash_write_enable();
+
+  if (!flash_wel_is_set()) {
+    return FLASH_STATUS_WEL_NOT_SET;
+  }
+
+  flash_select();
+  spi1_transfer(FLASH_CMD_PAGE_PROGRAM);
+  flash_send_address(address);
+
+  for (uint32_t index = 0; index < length; index++) {
+    spi1_transfer(in_buffer[index]);
+  }
+
+  flash_deselect();
+
+  return flash_wait_until_ready(FLASH_PAGE_PROGRAM_TIMEOUT_MS);
+}
+
+static flash_status_t flash_wait_until_ready(uint32_t timeout_ms) {
+  uint8_t status;
+  uint32_t start_time_ms = systick_get_systick_ms();
+  uint32_t time_difference_ms;
+
+  flash_select();
+  spi1_transfer(FLASH_CMD_READ_REGISTER1);
+  
+  do {
+    status = spi1_transfer(FLASH_DUMMY_BYTE);
+    /*  For unint32_t, arithematic is modulo 2 ^ 32 
+        i.e, (-5 % 2 ^ 32) = (-5 + 2 ^ 32) % 2 ^ 32 
+    */
+    time_difference_ms = (uint32_t)(systick_get_systick_ms() - start_time_ms);
+
+    if (time_difference_ms >= timeout_ms) {
+      return FLASH_STATUS_TIMEOUT;
+    }
+  } while ((status & FLASH_STATUS_REGISTER1_BUSY) != 0);
+
   flash_deselect();
 
   return FLASH_STATUS_OK;
@@ -172,41 +208,6 @@ static bool flash_wel_is_set(void) {
   flash_deselect();
 
   return ((status & FLASH_STATUS_REGISTER1_WEL) != 0);
-}
-
-static void flash_wait_while_busy(void) {
-  uint8_t status;
-
-  flash_select();
-  spi1_transfer(FLASH_CMD_READ_REGISTER1);
-  
-  do {
-    status = spi1_transfer(FLASH_DUMMY_BYTE);
-  } while ((status & FLASH_STATUS_REGISTER1_BUSY) != 0);
-
-  flash_deselect();
-}
-
-static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address) {
-  flash_wait_while_busy();
-
-  flash_write_enable();
-
-  if (!flash_wel_is_set()) {
-    return FLASH_STATUS_WEL_NOT_SET;
-  }
-
-  flash_select();
-  spi1_transfer(FLASH_CMD_PAGE_PROGRAM);
-  flash_send_address(address);
-
-  for (uint32_t index = 0; index < length; index++) {
-    spi1_transfer(in_buffer[index]);
-  }
-
-  flash_deselect();
-
-  return FLASH_STATUS_OK;
 }
 
 static void flash_send_address(uint32_t address) {
