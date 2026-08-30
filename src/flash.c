@@ -5,6 +5,8 @@
 #include "stm32f103xx.h"
 #include "flash_internal.h"
 
+#define PAGE_SIZE                         256
+
 static void flash_select(void);
 static void flash_deselect(void);
 static void flash_write_enable(void);
@@ -68,9 +70,9 @@ flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address
   index += buffer_length;
   page_address += buffer_length;
 
-  buffer_length = 256;
+  buffer_length = PAGE_SIZE;
 
-  while (remaining_length >= 256) {
+  while (remaining_length >= PAGE_SIZE) {
     status = flash_page_program(buffer_length, in_buffer + index, page_address);
 
     if (status != FLASH_STATUS_OK) {
