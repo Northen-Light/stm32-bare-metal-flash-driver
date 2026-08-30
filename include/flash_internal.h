@@ -11,7 +11,7 @@
 #define FLASH_CMD_READ_REGISTER1                            0x05
 #define FLASH_DUMMY_BYTE                                    0xFF
 
-#define FLASH_STATUS_REGISTER1_BUSY_BIT                     (1U << 0)
-#define FLASH_STATUS_REGISTER1_WEL_BIT                      (1U << 1)
+#define FLASH_STATUS_REGISTER1_BUSY                         (1U << 0)
+#define FLASH_STATUS_REGISTER1_WEL                          (1U << 1)
 
 #endif

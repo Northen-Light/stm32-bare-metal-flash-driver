@@ -171,7 +171,7 @@ static bool flash_wel_is_set(void) {
   status = spi1_transfer(FLASH_DUMMY_BYTE); 
   flash_deselect();
 
-  return ((status & FLASH_STATUS_REGISTER1_WEL_BIT) != 0);
+  return ((status & FLASH_STATUS_REGISTER1_WEL) != 0);
 }
 
 static void flash_wait_while_busy(void) {
@@ -182,7 +182,7 @@ static void flash_wait_while_busy(void) {
   
   do {
     status = spi1_transfer(FLASH_DUMMY_BYTE);
-  } while ((status & FLASH_STATUS_REGISTER1_BUSY_BIT) != 0);
+  } while ((status & FLASH_STATUS_REGISTER1_BUSY) != 0);
 
   flash_deselect();
 }
