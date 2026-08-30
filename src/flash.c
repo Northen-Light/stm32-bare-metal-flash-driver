@@ -8,8 +8,9 @@
 static void flash_select(void);
 static void flash_deselect(void);
 static void flash_write_enable(void);
-static bool flash_is_wel_set(void);
+static bool flash_wel_is_set(void);
 static void flash_wait_while_busy(void);
+static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address);
 static void flash_send_address(uint32_t address);
 
 void flash_init(void) {
@@ -28,7 +29,7 @@ void flash_read_jedec_id(jedec_id_t *id) {
   flash_deselect();
 }
 
-void flash_read_data(uint32_t length, uint32_t address, uint8_t *out_buffer) {
+void flash_read(uint32_t length, uint32_t address, uint8_t *out_buffer) {
   flash_wait_while_busy();
 
   flash_select();
@@ -42,24 +43,56 @@ void flash_read_data(uint32_t length, uint32_t address, uint8_t *out_buffer) {
   flash_deselect();
 }
 
-flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address) {
-  flash_wait_while_busy();
+flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address) {
+  uint32_t page_address = address;
+  uint32_t index = 0;
+  uint32_t remaining_length = length;
+  uint32_t buffer_length = 0;
+  uint32_t partial_page_length = (0xFF - (page_address & 0xFF)) + 1;
+  flash_status_t status;
 
-  flash_write_enable();
-
-  if (!flash_is_wel_set()) {
-    return FLASH_STATUS_WEL_NOT_SET;
+  if (partial_page_length <= remaining_length) {
+    buffer_length = partial_page_length;
+    remaining_length -= partial_page_length;
+  } else {
+    buffer_length = remaining_length;
+    remaining_length = 0;
   }
 
-  flash_select();
-  spi1_transfer(FLASH_CMD_PAGE_PROGRAM);
-  flash_send_address(address);
-
-  for (uint32_t index = 0; index < length; index++) {
-    spi1_transfer(in_buffer[index]);
+  status = flash_page_program(buffer_length, in_buffer + index, page_address);
+  
+  if (status != FLASH_STATUS_OK) {
+    return status;
   }
 
-  flash_deselect();
+  index += buffer_length;
+  page_address += buffer_length;
+
+  buffer_length = 256;
+
+  while (remaining_length >= 256) {
+    status = flash_page_program(buffer_length, in_buffer + index, page_address);
+
+    if (status != FLASH_STATUS_OK) {
+      return status;
+    }
+
+    remaining_length -= buffer_length;
+    index += buffer_length;
+    page_address += buffer_length;
+  }
+
+  if (remaining_length > 0) {
+    status = flash_page_program(remaining_length, in_buffer + index, page_address);
+
+    if (status != FLASH_STATUS_OK) {
+      return status;
+    }
+
+    index += remaining_length;
+    page_address += remaining_length;
+    remaining_length = 0;
+  }
 
   return FLASH_STATUS_OK;
 }
@@ -69,7 +102,7 @@ flash_status_t flash_sector_erase(uint32_t address) {
 
   flash_write_enable();
   
-  if (!flash_is_wel_set()) {
+  if (!flash_wel_is_set()) {
     return FLASH_STATUS_WEL_NOT_SET;
   }
 
@@ -86,7 +119,7 @@ flash_status_t flash_chip_erase(void) {
 
   flash_write_enable();
   
-  if (!flash_is_wel_set()) {
+  if (!flash_wel_is_set()) {
     return FLASH_STATUS_WEL_NOT_SET;
   }
 
@@ -111,7 +144,7 @@ static void flash_write_enable(void) {
   flash_deselect();
 }
 
-static bool flash_is_wel_set(void) {
+static bool flash_wel_is_set(void) {
   uint8_t status;
 
   flash_select();
@@ -135,8 +168,30 @@ static void flash_wait_while_busy(void) {
   flash_deselect();
 }
 
+static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address) {
+  flash_wait_while_busy();
+
+  flash_write_enable();
+
+  if (!flash_wel_is_set()) {
+    return FLASH_STATUS_WEL_NOT_SET;
+  }
+
+  flash_select();
+  spi1_transfer(FLASH_CMD_PAGE_PROGRAM);
+  flash_send_address(address);
+
+  for (uint32_t index = 0; index < length; index++) {
+    spi1_transfer(in_buffer[index]);
+  }
+
+  flash_deselect();
+
+  return FLASH_STATUS_OK;
+}
+
 static void flash_send_address(uint32_t address) {
-  spi1_transfer((address >> 0) & 0xFF);
-  spi1_transfer((address >> 8) & 0xFF);
   spi1_transfer((address >> 16) & 0xFF);
+  spi1_transfer((address >> 8) & 0xFF);
+  spi1_transfer((address >> 0) & 0xFF);
 }
