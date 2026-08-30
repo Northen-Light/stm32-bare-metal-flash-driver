@@ -17,22 +17,22 @@ void main(void) {
 
   flash_read_jedec_id(&id);
 
-  flash_read(DATA_BYTES_LENGTH, page_address, out_buffer);
+  flash_read(page_address, out_buffer, DATA_BYTES_LENGTH);
 
   status = flash_block_64KB_erase(page_address);
   
   if (status == FLASH_STATUS_OK) {
-    flash_read(DATA_BYTES_LENGTH, page_address, out_buffer);
+    flash_read(page_address, out_buffer, DATA_BYTES_LENGTH);
   }
 
   for (uint32_t index = 0; index < DATA_BYTES_LENGTH; index++) {
     in_buffer[index] = (uint8_t)(index % 256);
   }
 
-  status = flash_write(DATA_BYTES_LENGTH, in_buffer, page_address);
+  status = flash_write(page_address, in_buffer, DATA_BYTES_LENGTH);
 
   if (status == FLASH_STATUS_OK) {
-    flash_read(DATA_BYTES_LENGTH, page_address, out_buffer);
+    flash_read(page_address, out_buffer, DATA_BYTES_LENGTH);
   }
 
   while(1) {}

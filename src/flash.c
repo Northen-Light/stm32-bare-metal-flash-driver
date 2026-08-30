@@ -8,7 +8,7 @@
 
 #define PAGE_LENGTH                         256
 
-static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address);
+static flash_status_t flash_page_program(uint32_t address, const uint8_t *buffer, uint32_t length);
 static flash_status_t flash_wait_until_ready(uint32_t timeout_ms);
 static void flash_select(void);
 static void flash_deselect(void);
@@ -30,19 +30,19 @@ void flash_read_jedec_id(jedec_id_t *id) {
   flash_deselect();
 }
 
-void flash_read(uint32_t length, uint32_t address, uint8_t *out_buffer) {
+void flash_read(uint32_t address, uint8_t *buffer, uint32_t length) {
   flash_select();
   spi1_transfer(FLASH_CMD_READ_DATA);
   flash_send_address(address);
 
   for (uint32_t index = 0; index < length; index++) {
-    out_buffer[index] = spi1_transfer(FLASH_DUMMY_BYTE);
+    buffer[index] = spi1_transfer(FLASH_DUMMY_BYTE);
   }
 
   flash_deselect();
 }
 
-flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address) {
+flash_status_t flash_write(uint32_t address, const uint8_t *buffer, uint32_t length) {
   uint32_t page_address = address;
   uint32_t index = 0;
   uint32_t remaining_length = length;
@@ -58,7 +58,7 @@ flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address
     remaining_length = 0;
   }
 
-  status = flash_page_program(buffer_length, in_buffer + index, page_address);
+  status = flash_page_program(page_address, buffer + index, buffer_length);
   
   if (status != FLASH_STATUS_OK) {
     return status;
@@ -70,7 +70,7 @@ flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address
   buffer_length = PAGE_LENGTH;
 
   while (remaining_length >= PAGE_LENGTH) {
-    status = flash_page_program(buffer_length, in_buffer + index, page_address);
+    status = flash_page_program(page_address, buffer + index, buffer_length);
 
     if (status != FLASH_STATUS_OK) {
       return status;
@@ -82,7 +82,7 @@ flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address
   }
 
   if (remaining_length > 0) {
-    status = flash_page_program(remaining_length, in_buffer + index, page_address);
+    status = flash_page_program(page_address, buffer + index, remaining_length);
 
     if (status != FLASH_STATUS_OK) {
       return status;
@@ -140,7 +140,7 @@ flash_status_t flash_chip_erase(void) {
   return flash_wait_until_ready(FLASH_CHIP_ERASE_TIMEOUT_MS);
 }
 
-static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, uint32_t address) {
+static flash_status_t flash_page_program(uint32_t address, const uint8_t *buffer, uint32_t length) {
   flash_write_enable();
 
   if (!flash_wel_is_set()) {
@@ -152,7 +152,7 @@ static flash_status_t flash_page_program(uint32_t length, uint8_t *in_buffer, ui
   flash_send_address(address);
 
   for (uint32_t index = 0; index < length; index++) {
-    spi1_transfer(in_buffer[index]);
+    spi1_transfer(buffer[index]);
   }
 
   flash_deselect();
