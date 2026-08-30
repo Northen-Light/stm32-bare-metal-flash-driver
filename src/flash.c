@@ -10,11 +10,10 @@
 
 static flash_status_t flash_page_program(uint32_t address, const uint8_t *buffer, uint32_t length);
 static flash_status_t flash_wait_until_ready(uint32_t timeout_ms);
+static flash_status_t flash_write_enable(void);
+static void flash_send_address(uint32_t address);
 static void flash_select(void);
 static void flash_deselect(void);
-static void flash_write_enable(void);
-static bool flash_wel_is_set(void);
-static void flash_send_address(uint32_t address);
 
 void flash_init(void) {
   GPIOA_CRL &= ~GPIOA_CRL_PIN4_MASK;
@@ -97,12 +96,12 @@ flash_status_t flash_write(uint32_t address, const uint8_t *buffer, uint32_t len
 }
 
 flash_status_t flash_sector_erase(uint32_t address) {
-  flash_write_enable();
-  
-  if (!flash_wel_is_set()) {
-    return FLASH_STATUS_WEL_NOT_SET;
-  }
+  flash_status_t status = flash_write_enable();
 
+  if (flash_write_enable() != FLASH_STATUS_OK) {
+    return status;
+  }
+  
   flash_select();
   spi1_transfer(FLASH_CMD_SECTOR_ERASE);
   flash_send_address(address);
@@ -112,10 +111,10 @@ flash_status_t flash_sector_erase(uint32_t address) {
 }
 
 flash_status_t flash_block_64KB_erase(uint32_t address) {
-  flash_write_enable();
-  
-  if (!flash_wel_is_set()) {
-    return FLASH_STATUS_WEL_NOT_SET;
+  flash_status_t status = flash_write_enable();
+
+  if (flash_write_enable() != FLASH_STATUS_OK) {
+    return status;
   }
 
   flash_select();
@@ -127,10 +126,10 @@ flash_status_t flash_block_64KB_erase(uint32_t address) {
 }
 
 flash_status_t flash_chip_erase(void) {
-  flash_write_enable();
-  
-  if (!flash_wel_is_set()) {
-    return FLASH_STATUS_WEL_NOT_SET;
+  flash_status_t status = flash_write_enable();
+
+  if (flash_write_enable() != FLASH_STATUS_OK) {
+    return status;
   }
 
   flash_select();
@@ -141,10 +140,10 @@ flash_status_t flash_chip_erase(void) {
 }
 
 static flash_status_t flash_page_program(uint32_t address, const uint8_t *buffer, uint32_t length) {
-  flash_write_enable();
+  flash_status_t status = flash_write_enable();
 
-  if (!flash_wel_is_set()) {
-    return FLASH_STATUS_WEL_NOT_SET;
+  if (flash_write_enable() != FLASH_STATUS_OK) {
+    return status;
   }
 
   flash_select();
@@ -185,33 +184,35 @@ static flash_status_t flash_wait_until_ready(uint32_t timeout_ms) {
   return FLASH_STATUS_OK;
 }
 
-static void flash_select(void) {
-  GPIOA_BSRR = GPIOA_BSRR_PIN4_RESET;
-}
+static flash_status_t flash_write_enable(void) {
+  uint8_t status;
 
-static void flash_deselect(void) {
-  GPIOA_BSRR = GPIOA_BSRR_PIN4_SET;
-}
-
-static void flash_write_enable(void) {
   flash_select();
   spi1_transfer(FLASH_CMD_WRITE_ENABLE);
   flash_deselect();
-}
-
-static bool flash_wel_is_set(void) {
-  uint8_t status;
 
   flash_select();
   spi1_transfer(FLASH_CMD_READ_REGISTER1);
   status = spi1_transfer(FLASH_DUMMY_BYTE); 
   flash_deselect();
 
-  return ((status & FLASH_STATUS_REGISTER1_WEL) != 0);
+  if ((status & FLASH_STATUS_REGISTER1_WEL) == 0) {
+    return FLASH_STATUS_WEL_NOT_SET;
+  }
+
+  return FLASH_STATUS_OK;
 }
 
 static void flash_send_address(uint32_t address) {
   spi1_transfer((address >> 16) & 0xFF);
   spi1_transfer((address >> 8) & 0xFF);
   spi1_transfer((address >> 0) & 0xFF);
+}
+
+static void flash_select(void) {
+  GPIOA_BSRR = GPIOA_BSRR_PIN4_RESET;
+}
+
+static void flash_deselect(void) {
+  GPIOA_BSRR = GPIOA_BSRR_PIN4_SET;
 }
