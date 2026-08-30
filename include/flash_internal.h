@@ -5,6 +5,7 @@
 #define FLASH_CMD_READ_DATA                                 0x03
 #define FLASH_CMD_PAGE_PROGRAM                              0x02
 #define FLASH_CMD_SECTOR_ERASE                              0x20
+#define FLASH_CMD_BLOCK_64KB_ERASE                          0xD8
 #define FLASH_CMD_CHIP_ERASE                                0x60
 #define FLASH_CMD_WRITE_ENABLE                              0x06
 #define FLASH_CMD_READ_REGISTER1                            0x05

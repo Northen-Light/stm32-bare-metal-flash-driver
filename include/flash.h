@@ -19,6 +19,7 @@ void flash_read_jedec_id(jedec_id_t *id);
 void flash_read(uint32_t length, uint32_t address, uint8_t *out_buffer);
 flash_status_t flash_write(uint32_t length, uint8_t *in_buffer, uint32_t address);
 flash_status_t flash_sector_erase(uint32_t address);
+flash_status_t flash_block_64KB_erase(uint32_t address);
 flash_status_t flash_chip_erase(void);
 
 #endif

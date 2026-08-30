@@ -116,6 +116,23 @@ flash_status_t flash_sector_erase(uint32_t address) {
   return FLASH_STATUS_OK;
 }
 
+flash_status_t flash_block_64KB_erase(uint32_t address) {
+  flash_wait_while_busy();
+
+  flash_write_enable();
+  
+  if (!flash_wel_is_set()) {
+    return FLASH_STATUS_WEL_NOT_SET;
+  }
+
+  flash_select();
+  spi1_transfer(FLASH_CMD_BLOCK_64KB_ERASE);
+  flash_send_address(address);
+  flash_deselect();
+
+  return FLASH_STATUS_OK;
+}
+
 flash_status_t flash_chip_erase(void) {
   flash_wait_while_busy();
 
