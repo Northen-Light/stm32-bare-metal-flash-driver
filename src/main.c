@@ -43,23 +43,25 @@ void main(void) {
         break;
       } 
     }
-  }
 
-  for (uint32_t index = 0; index < DATA_BYTES_LENGTH; index++) {
-    in_buffer[index] = (uint8_t)(index % 256);
-  }
+    if (erase_verify_status == FLASH_VERIFY_OK) {
+      for (uint32_t index = 0; index < DATA_BYTES_LENGTH; index++) {
+        in_buffer[index] = (uint8_t)(index % 256);
+      }
 
-  status = flash_write(page_address, in_buffer, DATA_BYTES_LENGTH);
+      status = flash_write(page_address, in_buffer, DATA_BYTES_LENGTH);
 
-  if (status == FLASH_STATUS_OK) {
-    flash_read(page_address, out_buffer, DATA_BYTES_LENGTH);
+      if (status == FLASH_STATUS_OK) {
+        flash_read(page_address, out_buffer, DATA_BYTES_LENGTH);
 
-    write_verify_status = FLASH_VERIFY_OK;
+        write_verify_status = FLASH_VERIFY_OK;
 
-    for (uint32_t i = 0; i < DATA_BYTES_LENGTH; i++) {
-      if (in_buffer[i] != out_buffer[i]) {
-        write_verify_status = FLASH_VERIFY_FAILED;
-        break;
+        for (uint32_t i = 0; i < DATA_BYTES_LENGTH; i++) {
+          if (in_buffer[i] != out_buffer[i]) {
+            write_verify_status = FLASH_VERIFY_FAILED;
+            break;
+          }
+        }
       }
     }
   }
