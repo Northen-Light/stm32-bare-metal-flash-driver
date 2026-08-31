@@ -49,6 +49,8 @@ void Reset_Handler(void) {
 
   systick_init();
   main();
+
+  while(1) {}
 }
 
 void HardFault_Handler(void) {
