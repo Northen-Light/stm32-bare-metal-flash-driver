@@ -5,20 +5,17 @@
 #define DATA_BYTES_LENGTH                 4096
 
 typedef enum {
-  FLASH_VERIFICATION_STATUS_NOT_VERIFIED,
-  FLASH_VERIFICATION_STATUS_VERIFIED,
-  FLASH_VERIFICATION_STATUS_FAILURE
-} flash_verification_status_t;
+  FLASH_VERIFY_NOT_RUN,
+  FLASH_VERIFY_OK,
+  FLASH_VERIFY_FAILED
+} flash_verify_status_t;
 
 const uint32_t page_address = 0x0000E0;
 jedec_id_t id;
 uint8_t out_buffer[DATA_BYTES_LENGTH];
 uint8_t in_buffer[DATA_BYTES_LENGTH];
-flash_verification_status_t \
-  flash_write_verfication_status = FLASH_VERIFICATION_STATUS_NOT_VERIFIED;
-
-flash_verification_status_t \
-  flash_erase_verification_status = FLASH_VERIFICATION_STATUS_NOT_VERIFIED;
+flash_verify_status_t write_verify_status = FLASH_VERIFY_NOT_RUN;
+flash_verify_status_t erase_verify_status = FLASH_VERIFY_NOT_RUN;
 
 void main(void) {
   flash_status_t status;
@@ -26,8 +23,8 @@ void main(void) {
   spi1_init();
   flash_init();
 
-  flash_write_verfication_status = FLASH_VERIFICATION_STATUS_NOT_VERIFIED;
-  flash_erase_verification_status = FLASH_VERIFICATION_STATUS_NOT_VERIFIED;
+  write_verify_status = FLASH_VERIFY_NOT_RUN;
+  erase_verify_status = FLASH_VERIFY_NOT_RUN;
 
   flash_read_jedec_id(&id);
 
@@ -38,11 +35,11 @@ void main(void) {
   if (status == FLASH_STATUS_OK) {
     flash_read(page_address, out_buffer, DATA_BYTES_LENGTH);
 
-    flash_erase_verification_status = FLASH_VERIFICATION_STATUS_VERIFIED;
+    erase_verify_status = FLASH_VERIFY_OK;
 
     for (uint32_t i = 0; i < DATA_BYTES_LENGTH; i++) {
       if (out_buffer[i] != 0xFF) {
-        flash_erase_verification_status = FLASH_VERIFICATION_STATUS_FAILURE;
+        erase_verify_status = FLASH_VERIFY_FAILED;
         break;
       } 
     }
@@ -57,11 +54,11 @@ void main(void) {
   if (status == FLASH_STATUS_OK) {
     flash_read(page_address, out_buffer, DATA_BYTES_LENGTH);
 
-    flash_write_verfication_status = FLASH_VERIFICATION_STATUS_VERIFIED;
+    write_verify_status = FLASH_VERIFY_OK;
 
     for (uint32_t i = 0; i < DATA_BYTES_LENGTH; i++) {
       if (in_buffer[i] != out_buffer[i]) {
-        flash_write_verfication_status = FLASH_VERIFICATION_STATUS_FAILURE;
+        write_verify_status = FLASH_VERIFY_FAILED;
         break;
       }
     }
