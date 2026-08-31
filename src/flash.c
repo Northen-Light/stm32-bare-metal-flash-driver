@@ -6,7 +6,7 @@
 #include "flash_internal.h"
 #include "systick.h"
 
-#define PAGE_LENGTH                         256
+#define FLASH_PAGE_SIZE                         256
 
 static flash_status_t flash_page_program(uint32_t address, const uint8_t *buffer, uint32_t length);
 static flash_status_t flash_wait_until_ready(uint32_t timeout_ms);
@@ -18,6 +18,7 @@ static void flash_deselect(void);
 void flash_init(void) {
   GPIOA_CRL &= ~GPIOA_CRL_PIN4_MASK;
   GPIOA_CRL |= GPIOA_CRL_PIN4_GP_PP_10MHZ;
+  flash_deselect();
 }
 
 void flash_read_jedec_id(jedec_id_t *id) {
@@ -30,6 +31,10 @@ void flash_read_jedec_id(jedec_id_t *id) {
 }
 
 void flash_read(uint32_t address, uint8_t *buffer, uint32_t length) {
+  if (length == 0) {
+    return;
+  }
+
   flash_select();
   spi1_transfer(FLASH_CMD_READ_DATA);
   flash_send_address(address);
@@ -42,11 +47,16 @@ void flash_read(uint32_t address, uint8_t *buffer, uint32_t length) {
 }
 
 flash_status_t flash_write(uint32_t address, const uint8_t *buffer, uint32_t length) {
+  if (length == 0) {
+    return FLASH_STATUS_OK;
+  }
+
   uint32_t page_address = address;
   uint32_t index = 0;
   uint32_t remaining_length = length;
   uint32_t buffer_length = 0;
-  uint32_t partial_page_length = (0xFF - (page_address & 0xFF)) + 1;
+  uint32_t page_offset = page_address & (FLASH_PAGE_SIZE - 1);
+  uint32_t partial_page_length = FLASH_PAGE_SIZE - page_offset;
   flash_status_t status;
 
   if (partial_page_length <= remaining_length) {
@@ -66,9 +76,9 @@ flash_status_t flash_write(uint32_t address, const uint8_t *buffer, uint32_t len
   index += buffer_length;
   page_address += buffer_length;
 
-  buffer_length = PAGE_LENGTH;
+  buffer_length = FLASH_PAGE_SIZE;
 
-  while (remaining_length >= PAGE_LENGTH) {
+  while (remaining_length >= FLASH_PAGE_SIZE) {
     status = flash_page_program(page_address, buffer + index, buffer_length);
 
     if (status != FLASH_STATUS_OK) {
@@ -98,7 +108,7 @@ flash_status_t flash_write(uint32_t address, const uint8_t *buffer, uint32_t len
 flash_status_t flash_sector_erase(uint32_t address) {
   flash_status_t status = flash_write_enable();
 
-  if (flash_write_enable() != FLASH_STATUS_OK) {
+  if (status != FLASH_STATUS_OK) {
     return status;
   }
   
@@ -113,7 +123,7 @@ flash_status_t flash_sector_erase(uint32_t address) {
 flash_status_t flash_block_64KB_erase(uint32_t address) {
   flash_status_t status = flash_write_enable();
 
-  if (flash_write_enable() != FLASH_STATUS_OK) {
+  if (status != FLASH_STATUS_OK) {
     return status;
   }
 
@@ -128,7 +138,7 @@ flash_status_t flash_block_64KB_erase(uint32_t address) {
 flash_status_t flash_chip_erase(void) {
   flash_status_t status = flash_write_enable();
 
-  if (flash_write_enable() != FLASH_STATUS_OK) {
+  if (status != FLASH_STATUS_OK) {
     return status;
   }
 
@@ -142,7 +152,7 @@ flash_status_t flash_chip_erase(void) {
 static flash_status_t flash_page_program(uint32_t address, const uint8_t *buffer, uint32_t length) {
   flash_status_t status = flash_write_enable();
 
-  if (flash_write_enable() != FLASH_STATUS_OK) {
+  if (status != FLASH_STATUS_OK) {
     return status;
   }
 
@@ -169,12 +179,13 @@ static flash_status_t flash_wait_until_ready(uint32_t timeout_ms) {
   
   do {
     status = spi1_transfer(FLASH_DUMMY_BYTE);
-    /*  For unint32_t, arithematic is modulo 2 ^ 32 
-        i.e, (-5 % 2 ^ 32) = (-5 + 2 ^ 32) % 2 ^ 32 
-    */
+    
+    /* Unsigned subtraction handles SysTick wraparound. */
     time_difference_ms = (uint32_t)(systick_get_systick_ms() - start_time_ms);
 
     if (time_difference_ms >= timeout_ms) {
+      flash_deselect();
+
       return FLASH_STATUS_TIMEOUT;
     }
   } while ((status & FLASH_STATUS_REGISTER1_BUSY) != 0);

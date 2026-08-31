@@ -8,7 +8,9 @@
 #define SYST_CSR_ENABLE                         (1U << 0)
 #define SYST_CSR_TICKINT                        (1U << 1)
 #define SYST_CSR_CLKSOURCE                      (1U << 2)
-#define SYST_RVR_VAL                            (8000 - 1)                           
+#define SYSTEM_CORE_CLOCK_HZ                    8000000
+#define SYSTICK_HZ                              1000
+#define SYST_RVR_VAL                            ((SYSTEM_CORE_CLOCK_HZ / SYSTICK_HZ) - 1)                           
 
 void systick_init(void);
 void SysTick_Handler(void);
