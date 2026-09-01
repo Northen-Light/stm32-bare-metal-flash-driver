@@ -18,10 +18,10 @@ Supports JEDEC ID read, Read Data, Page Program, and erase operations, with Stat
 
 - JEDEC ID read and Status Register-1 access
 - Read Data and Page Program commands
-- 4 KB Sector Erase, 64 KB Block Erase, and Chip Erase
 - Write Enable with WEL verification
-- BUSY/WIP polling with operation-specific SysTick timeouts
 - Multi-page write support with automatic 256-byte page-boundary handling
+- 4 KB Sector Erase, 64 KB Block Erase, and Chip Erase
+- BUSY/WIP polling with operation-specific SysTick timeouts
 - Erase and write read-back verification
 
 ## Hardware
@@ -59,7 +59,7 @@ STM32F103 registers
 
 The SPI layer handles STM32 SPI1 configuration and byte transfers.
 
-The Flash layer handles flash commands, 24-bit address transmission, WEL verification, page-boundary handling, BUSY/WIP polling, and operation-specific program/erase timeouts.
+The Flash layer implements device-specific Flash operations and higher-level write handling on top of the SPI peripheral driver.
 
 ## Project Structure
 
@@ -219,11 +219,11 @@ make flash
 ## What This Project Demonstrates
 
 - Bare-metal STM32F103 SPI programming
-- SPI NOR Flash command and status handling
+- SPI NOR Flash command handling
 - Multi-page writes with page-boundary handling
 - BUSY/WIP polling with operation-specific timeouts
 - Erase and write read-back verification
-- Logic-analyzer based protocol validation
+- Logic analyzer protocol validation
 
 ## References
 
