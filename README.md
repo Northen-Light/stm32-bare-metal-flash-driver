@@ -44,7 +44,7 @@ The project interfaces an STM32F103 with a Winbond W25Qxx SPI NOR Flash device o
 
 ## Hardware Setup
 
-![Hardware setup](debugging/hardware-setup.png)
+![Hardware setup](docs/images/hardware-setup.jpg)
 
 STM32F103C8T6 connected to the SPI Flash module, with ST-Link used for programming and debugging.
 
